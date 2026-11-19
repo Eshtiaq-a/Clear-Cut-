@@ -114,7 +114,7 @@ begin
       new.verified_at = old.verified_at;
       new.payout_status = old.payout_status;
     end if;
-  end;
+  end if;
   return new;
 end;
 $$;
@@ -559,7 +559,10 @@ stable
 security definer
 set search_path = public, pg_temp
 as $$
-  select role from public.profiles where id = auth.uid();
+  select role
+  from public.profiles
+  where id = auth.uid()
+    and status = 'active';
 $$;
 
 create or replace function public.is_seller_owner(p_seller_id uuid)

@@ -56,6 +56,7 @@ Apply the migrations in timestamp order with the Supabase CLI or SQL migration r
 
 1. `supabase/migrations/20261120040000_phase31_foundation.sql`
 2. `supabase/migrations/20261120040100_seed_existing_catalog.sql`
+3. `supabase/migrations/20261120040200_phase31_security_corrections.sql`
 
 Example with an already-installed Supabase CLI:
 
@@ -80,6 +81,13 @@ The seed migration:
 - Uses `ON CONFLICT` updates for repeat-safe execution.
 
 Re-running the seed migration is intended to be safe when the migration engine executes it once. Do not manually rerun an applied migration unless the SQL migration runner is known to support idempotent reapplication.
+
+### Migration history implications
+
+- Fresh Supabase projects should execute the foundation, seed, and security-correction migrations in timestamp order.
+- Existing projects that already applied only the foundation and seed migrations can apply `20261120040200_phase31_security_corrections.sql` once.
+- The security-correction migration is additive and corrective; it drops and recreates affected policies/views/functions rather than deleting application data.
+- Seed reruns preserve existing verification and publication state; they update catalog content but do not overwrite inventory reservations or republish existing products.
 
 ## 6. Verify database connection
 

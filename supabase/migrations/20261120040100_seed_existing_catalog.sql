@@ -32,8 +32,7 @@ values
   ('HomePro Appliances', 'homepro-appliances', 'Dhaka', 'verified', now())
 on conflict (slug) do update
 set business_name = excluded.business_name,
-    location = excluded.location,
-    verification_status = excluded.verification_status;
+    location = excluded.location;
 
 with seed(legacy_key, name, name_bn, description, description_bn, category_slug, brand, original_price_bdt, current_price_bdt, featured, remaining_stock, expiry_date, status, keywords, image, condition, highlights, specifications, seller_slug) as (
   values
@@ -97,12 +96,10 @@ set seller_id = excluded.seller_id,
     original_price_bdt = excluded.original_price_bdt,
     current_price_bdt = excluded.current_price_bdt,
     featured = excluded.featured,
-    status = excluded.status,
     keywords = excluded.keywords,
     highlights = excluded.highlights,
     specifications = excluded.specifications,
-    expiry_date = excluded.expiry_date,
-    deleted_at = null;
+    expiry_date = excluded.expiry_date;
 
 with seed(legacy_key, remaining_stock, expiry_date, image) as (
   values
@@ -141,13 +138,7 @@ select
   'active'
 from seed s
 join public.products p on p.legacy_key = s.legacy_key
-on conflict (legacy_key) do update
-set product_id = excluded.product_id,
-    seller_id = excluded.seller_id,
-    expiry_date = excluded.expiry_date,
-    quantity_available = excluded.quantity_available,
-    quantity_reserved = 0,
-    status = excluded.status;
+on conflict (legacy_key) do nothing;
 
 with seed(legacy_key, image) as (
   values
