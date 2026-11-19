@@ -16,7 +16,10 @@ export default function CheckoutPage() {
   function placeOrder(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!items.length) return;
-    const reference = `CC-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+    const randomSuffix = globalThis.crypto?.randomUUID
+      ? globalThis.crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()
+      : Math.random().toString(36).slice(2, 10).toUpperCase();
+    const reference = `CC-DEMO-${randomSuffix}`;
     setOrderReference(reference);
     setPlaced(true);
     clearCart();
