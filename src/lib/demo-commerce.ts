@@ -1,6 +1,6 @@
 import type { Product } from "@/data/products";
 
-export type CartItem = { id: string; quantity: number; product?: Product };
+export type CartItem = { id: string; cartItemId?: string; quantity: number; product?: Product };
 
 const CART_KEY = "lastcall-cart";
 const WISHLIST_KEY = "lastcall-wishlist";
@@ -15,12 +15,20 @@ export function getCart(): CartItem[] {
     for (const item of value) {
       if (!item || typeof item !== "object") continue;
       const id = (item as { id?: unknown }).id;
+      const cartItemId = (item as { cartItemId?: unknown }).cartItemId;
       const quantity = (item as { quantity?: unknown }).quantity;
       if (typeof id !== "string" || typeof quantity !== "number" || !Number.isFinite(quantity)) continue;
       const product = (item as { product?: unknown }).product as Product | undefined;
       if (!product || product.status === "sold-out" || product.remainingStock <= 0) continue;
       const safeQuantity = Math.max(1, Math.min(product.remainingStock, Math.floor(quantity)));
-      if (!valid.some((entry) => entry.id === id)) valid.push({ id, quantity: safeQuantity, product });
+      if (!valid.some((entry) => entry.id === id)) {
+        valid.push({
+          id,
+          cartItemId: typeof cartItemId === "string" ? cartItemId : undefined,
+          quantity: safeQuantity,
+          product,
+        });
+      }
     }
     return valid;
   } catch {
@@ -34,6 +42,7 @@ export function setCart(items: CartItem[]) {
     if (!item.product || item.product.status === "sold-out" || item.product.remainingStock <= 0) return [];
     return [{
       id: item.id,
+      cartItemId: item.cartItemId,
       quantity: Math.max(1, Math.min(item.product.remainingStock, Math.floor(item.quantity))),
       product: item.product,
     }];

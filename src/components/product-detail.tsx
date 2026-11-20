@@ -55,10 +55,10 @@ export function ProductDetail({ product, related = [] }: { product: Product; rel
     setSaved(!saved);
   }
 
-  function handleAddToCart() {
+  async function handleAddToCart() {
     if (product.status === "sold-out" || maxQuantity < 1 || isAdding) return;
     setIsAdding(true);
-    addItem(product, quantity);
+    await addItem(product, quantity);
     setAdded(true);
     window.setTimeout(() => setIsAdding(false), 350);
   }

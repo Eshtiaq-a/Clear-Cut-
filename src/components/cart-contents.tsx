@@ -12,8 +12,8 @@ export function CartContents() {
 
   const { lines, originalTotal, subtotal, savings, delivery, estimatedTotal } = calculateCartTotals(items);
 
-  function handleRemove(id: string, name: string) {
-    removeItem(id);
+  async function handleRemove(id: string, name: string) {
+    await removeItem(id);
     setFeedback(`${name} removed from your cart.`);
   }
 
@@ -52,9 +52,9 @@ export function CartContents() {
                 <button className="remove-cart-item" type="button" onClick={() => handleRemove(product.id, product.name)}>Remove</button>
               </div>
               <div className="cart-quantity" aria-label={`Quantity for ${product.name}`}>
-                <button type="button" onClick={() => updateQuantity(product.id, quantity - 1)} disabled={quantity <= 1} aria-label="Decrease quantity">−</button>
+                <button type="button" onClick={() => void updateQuantity(product.id, quantity - 1)} disabled={quantity <= 1} aria-label="Decrease quantity">−</button>
                 <span>{quantity}</span>
-                <button type="button" onClick={() => updateQuantity(product.id, quantity + 1)} disabled={quantity >= product.remainingStock} aria-label="Increase quantity">+</button>
+                <button type="button" onClick={() => void updateQuantity(product.id, quantity + 1)} disabled={quantity >= product.remainingStock} aria-label="Increase quantity">+</button>
               </div>
               <div className="cart-line-total">
                 <small>Line subtotal</small>

@@ -3,7 +3,6 @@
 import type { Product } from "@/data/products";
 import { productRepository } from "@/lib/products";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getWishlist, setWishlist } from "@/lib/demo-commerce";
@@ -38,10 +37,10 @@ export function ProductCard({ product, onWishlistChange }: { product: Product; o
     onWishlistChange?.(!saved);
   }
 
-  function handleAddToCart() {
+  async function handleAddToCart() {
     if (isAdding || product.status === "sold-out" || product.remainingStock <= 0) return;
     setIsAdding(true);
-    if (addItem(product, 1)) {
+    if (await addItem(product, 1)) {
       setAdded(true);
       window.setTimeout(() => setAdded(false), 1800);
     }
@@ -58,7 +57,13 @@ export function ProductCard({ product, onWishlistChange }: { product: Product; o
     <Card className="product-card">
       <div className="product-image">
         {product.image && !imageFailed ? (
-          <Image src={product.image} alt={product.name} fill sizes="(max-width: 600px) 50vw, (max-width: 900px) 25vw, 280px" onError={() => setImageFailed(true)} style={{ objectFit: "cover" }} />
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={product.image}
+            alt={product.name}
+            className="product-card-image"
+            onError={() => setImageFailed(true)}
+          />
         ) : (
           <div className="missing-card-image"><Icon name="leaf" size={24} /><span>Image unavailable</span></div>
         )}

@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { marketplaceCategories } from "@/data/categories";
 
 type SellerProduct = {
   id: string;
@@ -159,7 +160,24 @@ export function SellerWorkspace({
           <form className="seller-form" onSubmit={createProduct}>
             <label>Name<input required value={form.name} onChange={(event) => updateField("name", event.target.value)} /></label>
             <label>Description<textarea required value={form.description} onChange={(event) => updateField("description", event.target.value)} /></label>
-            <label>Category<input required value={form.category} onChange={(event) => updateField("category", event.target.value)} /></label>
+            <label>
+              Category
+              <input
+                required
+                type="text"
+                list="seller-category-options"
+                value={form.category}
+                onChange={(event) => updateField("category", event.target.value)}
+                placeholder="Start typing a category"
+              />
+              <datalist id="seller-category-options">
+                {marketplaceCategories
+                  .filter((category) => category.slug !== "all")
+                  .map((category) => (
+                    <option key={category.slug} value={category.name}>{category.name}</option>
+                  ))}
+              </datalist>
+            </label>
             <label>Original price<input required type="number" min="1" step="0.01" value={form.original_price} onChange={(event) => updateField("original_price", event.target.value)} /></label>
             <label>Discounted price<input required type="number" min="0" step="0.01" value={form.discounted_price} onChange={(event) => updateField("discounted_price", event.target.value)} /></label>
             <label>Stock<input required type="number" min="0" step="1" value={form.stock} onChange={(event) => updateField("stock", event.target.value)} /></label>
