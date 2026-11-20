@@ -114,7 +114,7 @@ Initial public policies permit:
 - Public read of active/sold-out products
 - Public read of public product images and active price rules
 - Public read of verified seller summaries
-- Public read of product inventory and public catalog storage
+- Public read of product availability (`product_id` and `in_stock`) and public catalog storage
 
 Protected policies permit:
 
@@ -128,7 +128,18 @@ Protected policies permit:
 - Sellers to view/update only their own seller suborders
 - Users and sellers to read only their permitted order items, payments, impact events, and notifications
 
+Seller mutations require all three conditions: the authenticated user owns the
+seller profile, the seller profile is verified, and the user's profile is an
+active `seller` account. Suspension or verification changes therefore remove
+seller mutation access without changing ownership records.
+
 Private tables with no user-facing policy, including inventory reservations and audit logs, are denied to ordinary anon/authenticated users unless a specific policy is added in a later phase.
+
+Guest checkout idempotency is keyed by the server-derived `guest_key_hash` and
+`idempotency_key` pair. Checkout code must hash and validate the secure guest
+session token before creating an anonymous order; it must not accept a
+client-supplied hash as proof of ownership. Authenticated orders use
+`user_id` and `idempotency_key`.
 
 Admin/support operations are not broad public operations. Later migrations must define narrowly scoped policies or service-role operations after authentication and role ownership are verified.
 
@@ -139,8 +150,8 @@ The migration creates or updates a public `product-images` bucket:
 - Maximum file size: 5 MB
 - Allowed MIME types: JPEG, PNG, and WebP
 - Public reads
-- Authenticated uploads only in an object path beginning with the user's auth UID
-- Authenticated updates/deletes only for objects owned by that user
+- Verified-seller uploads only in an object path beginning with the user's auth UID
+- Verified-seller updates/deletes only for objects owned by that user
 
 Existing Unsplash URLs remain external seed references in `product_images.storage_path`. This phase does not migrate or upload existing image assets.
 

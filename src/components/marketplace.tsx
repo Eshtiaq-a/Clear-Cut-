@@ -4,12 +4,13 @@ import type { Product } from "@/data/products";
 import { productRepository } from "@/lib/products";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getWishlist, setWishlist } from "@/lib/demo-commerce";
 import { useCart } from "./cart-provider";
 import { marketplaceCategories } from "@/data/categories";
 import { Badge, Card, Icon } from "./ui";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function ProductCard({ product, onWishlistChange }: { product: Product; onWishlistChange?: (saved: boolean) => void }) {
   const [imageFailed, setImageFailed] = useState(false);
@@ -99,7 +100,58 @@ export function SectionHeading({ eyebrow, title, action, href = "/search" }: { e
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const { itemCount } = useCart();
+  const [userName, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserEmail(user?.email ?? "");
+
+      if (!user) {
+        setUserName("");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      setUserName(
+        profile?.full_name?.trim()
+          || user.user_metadata?.full_name
+          || user.email?.split("@")[0]
+          || "Account",
+      );
+    }
+
+    loadUser();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      loadUser();
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function handleLogout() {
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Supabase logout error:", error);
+      return;
+    }
+    setAccountMenuOpen(false);
+    router.replace("/");
+    router.refresh();
+  }
+
   return (
     <header className="site-header">
       <div className="header-inner">
@@ -116,7 +168,31 @@ export function SiteHeader() {
         <div className="header-actions">
           <Link className="header-action" href="/wishlist" aria-label="Wishlist"><Icon name="heart" /></Link>
           <Link className="header-action bag-action" href="/cart" aria-label={`Cart with ${itemCount} items`}><Icon name="bag" /><b>{itemCount}</b></Link>
-          <Link className="avatar" href="/account" aria-label="Account">A</Link>
+          {userName ? (
+            <div className="account-menu">
+              <button
+                className="account-menu-trigger"
+                type="button"
+                aria-expanded={accountMenuOpen}
+                onClick={() => setAccountMenuOpen((open) => !open)}
+              >
+                <span className="avatar">{userName.charAt(0).toUpperCase()}</span>
+                <span className="account-name">{userName}</span>
+              </button>
+              {accountMenuOpen && (
+                <div className="account-dropdown">
+                  <span>{userEmail}</span>
+                  <Link href="/account" onClick={() => setAccountMenuOpen(false)}>Account</Link>
+                  <button type="button" onClick={handleLogout}>Log out</button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="auth-links">
+              <Link href="/login">Log in</Link>
+              <Link className="auth-signup-link" href="/signup">Sign up</Link>
+            </div>
+          )}
         </div>
       </div>
       <nav className="mobile-nav" aria-label="Mobile navigation">

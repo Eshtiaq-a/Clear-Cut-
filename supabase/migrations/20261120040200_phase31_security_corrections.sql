@@ -1,6 +1,41 @@
 -- Phase 3.1 security corrections.
 -- Apply after 20261120040000 and 20261120040100.
 
+-- Guest orders need their own idempotency namespace because PostgreSQL unique
+-- constraints allow multiple NULL user_id values.
+alter table public.orders
+  add column guest_key_hash text;
+
+alter table public.orders
+  add constraint orders_owner_one_type check (
+    (user_id is not null and guest_key_hash is null)
+    or (user_id is null and guest_key_hash is not null)
+  );
+
+create unique index orders_guest_idempotency_unique
+on public.orders(guest_key_hash, idempotency_key)
+where guest_key_hash is not null;
+
+-- Seller ownership also requires an active seller account and verified profile.
+create or replace function public.is_seller_owner(p_seller_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select exists (
+    select 1
+    from public.seller_profiles sp
+    join public.profiles p on p.id = sp.owner_user_id
+    where sp.id = p_seller_id
+      and sp.owner_user_id = auth.uid()
+      and sp.verification_status = 'verified'
+      and p.role = 'seller'
+      and p.status = 'active'
+  );
+$$;
+
 -- Privilege changes are controlled by trusted server/admin operations.
 create or replace function public.protect_profile_privileges()
 returns trigger

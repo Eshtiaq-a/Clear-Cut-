@@ -1,12 +1,45 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { MarketplaceShell, StatCard } from "@/components/page-shell";
+import { redirect } from "next/navigation";
+import { MarketplaceShell } from "@/components/page-shell";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+export const instant = false;
 
 export const metadata: Metadata = {
-  title: "Account demo | Clear Cut",
+  title: "Account | LastCall",
   robots: { index: false, follow: false },
 };
 
-export default function AccountPage() {
-  return <MarketplaceShell><section className="container page-section"><div className="page-intro"><p className="eyebrow">Demo account</p><h1>Welcome back, Asha.</h1><p>This is a frontend demonstration using sample account data. No live account or privileged operations are available.</p></div><div className="stats-grid"><StatCard label="Products rescued" value="24" note="Since joining" /><StatCard label="Money saved" value="৳8,460" note="Compared with retail" /><StatCard label="Impact score" value="86" note="You are doing great" /></div><div className="account-links"><Link href="/account/orders"><strong>Your orders</strong><span>View sample order history →</span></Link><Link href="/account/impact"><strong>Your impact</strong><span>See sample impact →</span></Link><Link href="/account/settings"><strong>Account settings</strong><span>Demo preferences →</span></Link></div></section></MarketplaceShell>;
+export default async function AccountPage() {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const name = profile?.full_name?.trim()
+    || user.user_metadata?.full_name
+    || "LastCall user";
+
+  return (
+    <MarketplaceShell>
+      <section className="container page-section">
+        <div className="page-intro">
+          <p className="eyebrow">Your account</p>
+          <h1>Welcome, {name}.</h1>
+        </div>
+        <div className="empty-state">
+          <strong>{name}</strong>
+          <span>{user.email}</span>
+        </div>
+      </section>
+    </MarketplaceShell>
+  );
 }
