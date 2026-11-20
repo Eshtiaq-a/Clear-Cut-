@@ -114,27 +114,20 @@ export function SellerWorkspace({
     }
   }
 
-  async function updateProduct(product: SellerProduct, field: "original_price" | "discounted_price" | "stock", value: string) {
-    setError("");
-    try {
-      const response = await fetch(`/api/seller/products/${product.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: Number(value) }),
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.error || "Unable to update product");
-      }
-      const updated = await response.json() as SellerProduct;
-      setProducts((current) =>
-        current.map((item) => item.id === updated.id ? updated : item),
-      );
-    } catch (caughtError) {
-      console.error("Seller product update error:", caughtError);
-      setError(caughtError instanceof Error ? caughtError.message : "Unable to update product");
-    }
-  }
+  const totalProducts = products.length;
+  const totalStock = products.reduce((sum, product) => sum + Number(product.stock || 0), 0);
+  const potentialRevenue = products.reduce(
+    (sum, product) => sum + Number(product.discounted_price || 0) * Number(product.stock || 0),
+    0,
+  );
+  const lowStockCount = products.filter((product) => Number(product.stock || 0) < 5).length;
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("en-BD", {
+      style: "currency",
+      currency: "BDT",
+      maximumFractionDigits: 0,
+    }).format(value);
 
   return (
     <section className="container page-section">
@@ -155,6 +148,14 @@ export function SellerWorkspace({
         </div>
       ) : (
         <>
+          <div className="stats-grid seller-stats" aria-label="Seller dashboard summary">
+            <div className="stat-card"><span>Total products listed</span><strong>{totalProducts}</strong></div>
+            <div className="stat-card"><span>Total stock remaining</span><strong>{totalStock}</strong></div>
+            <div className="stat-card"><span>Potential revenue</span><strong>{formatCurrency(potentialRevenue)}</strong></div>
+            <div className="stat-card"><span>Low stock alerts</span><strong>{lowStockCount}</strong></div>
+          </div>
+
+          <h2 className="seller-form-heading">Add a product</h2>
           <form className="seller-form" onSubmit={createProduct}>
             <label>Name<input required value={form.name} onChange={(event) => updateField("name", event.target.value)} /></label>
             <label>Description<textarea required value={form.description} onChange={(event) => updateField("description", event.target.value)} /></label>
@@ -185,36 +186,14 @@ export function SellerWorkspace({
                     <strong>{product.name}</strong>
                     <span>{product.category}</span>
                   </div>
-                  <label>
-                    Original
-                    <input
-                      type="number"
-                      min="1"
-                      step="0.01"
-                      defaultValue={product.original_price}
-                      onBlur={(event) => updateProduct(product, "original_price", event.target.value)}
-                    />
-                  </label>
-                  <label>
-                    Discounted
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      defaultValue={product.discounted_price}
-                      onBlur={(event) => updateProduct(product, "discounted_price", event.target.value)}
-                    />
-                  </label>
-                  <label>
-                    Stock
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      defaultValue={product.stock}
-                      onBlur={(event) => updateProduct(product, "stock", event.target.value)}
-                    />
-                  </label>
+                  <div className="seller-product-pricing">
+                    <span className="seller-original-price">{formatCurrency(Number(product.original_price))}</span>
+                    <strong>{formatCurrency(Number(product.discounted_price))}</strong>
+                  </div>
+                  <div className="seller-product-stock">
+                    <span>Stock</span>
+                    <strong>{product.stock}</strong>
+                  </div>
                 </article>
               ))
             )}
