@@ -17,6 +17,7 @@ export type ProductCategory =
   | "Travel & Lifestyle";
 
 export type ProductStatus = "active" | "sold-out";
+export type DemandLevel = "low" | "medium" | "high";
 
 export interface ProductSpecification {
   label: string;
@@ -45,6 +46,9 @@ export interface Product {
   featured: boolean;
   remainingStock: number;
   expiryDate?: string;
+  expiry_date?: string | null;
+  demand_level?: DemandLevel | null;
+  price_floor?: number | null;
   status: ProductStatus;
   keywords: readonly string[];
   createdAt: string;

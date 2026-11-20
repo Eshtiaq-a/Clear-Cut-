@@ -3,6 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { marketplaceCategories } from "@/data/categories";
+import { computeSuggestedPrice } from "@/lib/pricing";
 
 type SellerProduct = {
   id: string;
@@ -13,6 +14,9 @@ type SellerProduct = {
   discounted_price: number;
   stock: number;
   image_url: string;
+  expiry_date?: string | null;
+  demand_level?: "low" | "medium" | "high" | null;
+  price_floor?: number | null;
 };
 
 export function SellerWorkspace({
@@ -36,6 +40,9 @@ export function SellerWorkspace({
     discounted_price: "",
     stock: "",
     image_url: "",
+    expiry_date: "",
+    demand_level: "medium",
+    price_floor: "",
   });
 
   async function loadProducts() {
@@ -104,6 +111,9 @@ export function SellerWorkspace({
         discounted_price: "",
         stock: "",
         image_url: "",
+        expiry_date: "",
+        demand_level: "medium",
+        price_floor: "",
       });
       await loadProducts();
       router.refresh();
@@ -129,6 +139,21 @@ export function SellerWorkspace({
       currency: "BDT",
       maximumFractionDigits: 0,
     }).format(value);
+
+  const showSuggestedPrice =
+    form.original_price !== ""
+    && form.expiry_date !== ""
+    && form.stock !== ""
+    && form.price_floor !== "";
+  const suggestedPricing = showSuggestedPrice
+    ? computeSuggestedPrice({
+        original_price: Number(form.original_price),
+        expiry_date: form.expiry_date,
+        demand_level: form.demand_level,
+        stock: Number(form.stock),
+        price_floor: Number(form.price_floor),
+      })
+    : null;
 
   return (
     <section className="container page-section">
@@ -180,7 +205,40 @@ export function SellerWorkspace({
             </label>
             <label>Original price<input required type="number" min="1" step="0.01" value={form.original_price} onChange={(event) => updateField("original_price", event.target.value)} /></label>
             <label>Discounted price<input required type="number" min="0" step="0.01" value={form.discounted_price} onChange={(event) => updateField("discounted_price", event.target.value)} /></label>
+            {suggestedPricing && (
+              <div className="pricing-suggestion" aria-live="polite">
+                {suggestedPricing.blocked ? (
+                  <>
+                    <strong>Pricing blocked</strong>
+                    <span>{suggestedPricing.blockedReason}</span>
+                  </>
+                ) : (
+                  <>
+                    <strong>Suggested price: {formatCurrency(suggestedPricing.suggestedPrice)}</strong>
+                    <span>{suggestedPricing.discountPercent}% discount</span>
+                    {suggestedPricing.reasons.map((reason) => <span key={reason}>{reason}</span>)}
+                    <button
+                      className="button button-secondary"
+                      type="button"
+                      onClick={() => updateField("discounted_price", String(suggestedPricing.suggestedPrice))}
+                    >
+                      Use suggested price
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
             <label>Stock<input required type="number" min="0" step="1" value={form.stock} onChange={(event) => updateField("stock", event.target.value)} /></label>
+            <label>Expiry date<input required type="date" value={form.expiry_date} onChange={(event) => updateField("expiry_date", event.target.value)} /></label>
+            <label>
+              Demand level
+              <select value={form.demand_level} onChange={(event) => updateField("demand_level", event.target.value)}>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </label>
+            <label>Price floor<input required type="number" min="0" step="0.01" value={form.price_floor} onChange={(event) => updateField("price_floor", event.target.value)} /></label>
             <label className="seller-image-field">Image URL<input required type="text" value={form.image_url} onChange={(event) => updateField("image_url", event.target.value)} /></label>
             <button className="button button-primary seller-submit" type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Adding..." : "Add product"}

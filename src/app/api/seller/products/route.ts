@@ -12,7 +12,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("products")
-      .select("id, seller_id, name, description, category, original_price, discounted_price, stock, image_url, created_at")
+      .select("id, seller_id, name, description, category, original_price, discounted_price, stock, image_url, expiry_date, demand_level, price_floor, created_at")
       .eq("seller_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -61,6 +61,9 @@ export async function POST(request: NextRequest) {
       discounted_price,
       stock,
       image_url,
+      expiry_date,
+      demand_level,
+      price_floor,
     } = body;
 
     if (
@@ -81,6 +84,12 @@ export async function POST(request: NextRequest) {
     const originalPrice = Number(original_price);
     const discountedPrice = Number(discounted_price);
     const stockValue = Number(stock);
+    const priceFloor = price_floor === "" || price_floor === undefined || price_floor === null
+      ? null
+      : Number(price_floor);
+    const demandLevel = ["low", "medium", "high"].includes(demand_level)
+      ? demand_level
+      : "medium";
 
     if (
       !Number.isFinite(originalPrice)
@@ -90,6 +99,7 @@ export async function POST(request: NextRequest) {
       || discountedPrice < 0
       || discountedPrice > originalPrice
       || stockValue < 0
+      || (priceFloor !== null && (!Number.isFinite(priceFloor) || priceFloor < 0))
     ) {
       return NextResponse.json({ error: "Enter valid prices and a non-negative whole-number stock" }, { status: 400 });
     }
@@ -105,8 +115,11 @@ export async function POST(request: NextRequest) {
         discounted_price: discountedPrice,
         stock: stockValue,
         image_url: image_url.trim(),
+        expiry_date: expiry_date || null,
+        demand_level: demandLevel,
+        price_floor: priceFloor,
       })
-      .select("id, seller_id, name, description, category, original_price, discounted_price, stock, image_url, created_at")
+      .select("id, seller_id, name, description, category, original_price, discounted_price, stock, image_url, expiry_date, demand_level, price_floor, created_at")
       .single();
 
     if (error) {

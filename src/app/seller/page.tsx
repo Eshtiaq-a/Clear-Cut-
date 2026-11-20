@@ -33,12 +33,15 @@ export default async function SellerPage() {
     discounted_price: number;
     stock: number;
     image_url: string;
+    expiry_date: string | null;
+    demand_level: "low" | "medium" | "high" | null;
+    price_floor: number | null;
   }> = [];
 
   if (isSeller) {
     const { data } = await supabase
       .from("products")
-      .select("id, name, description, category, original_price, discounted_price, stock, image_url")
+      .select("id, name, description, category, original_price, discounted_price, stock, image_url, expiry_date, demand_level, price_floor")
       .eq("seller_id", user.id)
       .order("created_at", { ascending: false });
     initialProducts = data ?? [];

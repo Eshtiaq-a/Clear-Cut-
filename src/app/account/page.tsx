@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MarketplaceShell } from "@/components/page-shell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -20,7 +21,7 @@ export default async function AccountPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name")
+    .select("full_name, is_seller")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -38,6 +39,15 @@ export default async function AccountPage() {
         <div className="empty-state">
           <strong>{name}</strong>
           <span>{user.email}</span>
+        </div>
+        <div className="account-links">
+          <Link href="/account/orders"><strong>My Orders</strong><span>View your order history</span></Link>
+          <Link href="/wishlist"><strong>Wishlist</strong><span>View your saved products</span></Link>
+          <Link href="/account/impact"><strong>Your Impact</strong><span>View your marketplace impact</span></Link>
+          <Link href="/account/settings"><strong>Settings</strong><span>Manage account preferences</span></Link>
+          {profile?.is_seller === true && (
+            <Link href="/seller"><strong>Seller Dashboard</strong><span>Manage your products</span></Link>
+          )}
         </div>
       </section>
     </MarketplaceShell>

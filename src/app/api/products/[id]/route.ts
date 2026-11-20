@@ -13,7 +13,7 @@ export async function GET(
     const supabase = createClient(url, anonKey);
     const { data, error } = await supabase
       .from("products")
-      .select("id, name, description, category, original_price, discounted_price, stock, image_url, created_at")
+      .select("id, name, description, category, original_price, discounted_price, stock, image_url, expiry_date, demand_level, price_floor, created_at")
       .eq("id", id)
       .maybeSingle();
 
@@ -29,6 +29,13 @@ export async function GET(
     const originalPrice = Number(data.original_price ?? 0);
     const currentPrice = Number(data.discounted_price ?? data.original_price ?? 0);
     const stock = Math.max(0, Number(data.stock ?? 0));
+    const today = new Date();
+    const todayKey = [
+      today.getUTCFullYear(),
+      String(today.getUTCMonth() + 1).padStart(2, "0"),
+      String(today.getUTCDate()).padStart(2, "0"),
+    ].join("-");
+    const expired = Boolean(data.expiry_date && data.expiry_date < todayKey);
     const product: Product = {
       id: data.id,
       name: data.name ?? "Unnamed product",
@@ -43,9 +50,13 @@ export async function GET(
       brand: "LastCall seller",
       featured: true,
       remainingStock: stock,
-      status: stock > 0 ? "active" : "sold-out",
+      status: stock > 0 && !expired ? "active" : "sold-out",
       keywords: [],
       createdAt: data.created_at,
+      expiryDate: data.expiry_date ?? undefined,
+      expiry_date: data.expiry_date,
+      demand_level: data.demand_level,
+      price_floor: data.price_floor,
     };
 
     return NextResponse.json(product);

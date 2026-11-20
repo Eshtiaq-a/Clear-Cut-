@@ -17,6 +17,9 @@ create table public.products (
   discounted_price numeric,
   stock int,
   image_url text,
+  expiry_date date,
+  demand_level text,
+  price_floor numeric,
   created_at timestamptz not null default now()
 );
 

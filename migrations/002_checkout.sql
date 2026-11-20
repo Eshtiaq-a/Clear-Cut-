@@ -100,3 +100,7 @@ $$;
 revoke execute on function public.place_cod_order() from public;
 revoke execute on function public.place_cod_order() from anon;
 grant execute on function public.place_cod_order() to authenticated;
+alter table public.products
+  add column if not exists expiry_date date,
+  add column if not exists demand_level text,
+  add column if not exists price_floor numeric;

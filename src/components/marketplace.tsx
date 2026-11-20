@@ -110,6 +110,7 @@ export function SiteHeader() {
   const { itemCount } = useCart();
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [isSeller, setIsSeller] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -121,15 +122,17 @@ export function SiteHeader() {
 
       if (!user) {
         setUserName("");
+        setIsSeller(false);
         return;
       }
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name")
+        .select("full_name, is_seller")
         .eq("id", user.id)
         .maybeSingle();
 
+      setIsSeller(profile?.is_seller === true);
       setUserName(
         profile?.full_name?.trim()
           || user.user_metadata?.full_name
@@ -174,6 +177,9 @@ export function SiteHeader() {
         <div className="header-actions">
           <Link className="header-action" href="/wishlist" aria-label="Wishlist"><Icon name="heart" /></Link>
           <Link className="header-action bag-action" href="/cart" aria-label={`Cart with ${itemCount} items`}><Icon name="bag" /><b>{itemCount}</b></Link>
+          {userName && (
+            <Link className="header-action" href="/account/orders" aria-label="My Orders"><Icon name="orders" size={21} /></Link>
+          )}
           {userName ? (
             <div className="account-menu">
               <button
@@ -189,6 +195,10 @@ export function SiteHeader() {
                 <div className="account-dropdown">
                   <span>{userEmail}</span>
                   <Link href="/account" onClick={() => setAccountMenuOpen(false)}>Account</Link>
+                  <Link href="/account/orders" onClick={() => setAccountMenuOpen(false)}>My Orders</Link>
+                  {isSeller && (
+                    <Link href="/seller" onClick={() => setAccountMenuOpen(false)}>Seller Dashboard</Link>
+                  )}
                   <button type="button" onClick={handleLogout}>Log out</button>
                 </div>
               )}

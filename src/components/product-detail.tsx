@@ -12,6 +12,7 @@ import { ProductGallery } from "./product-gallery";
 import { ProductBreadcrumbs } from "./product-breadcrumbs";
 import { ProductSpecifications } from "./product-specifications";
 import { RecentlyViewed } from "./recently-viewed";
+import { computeSuggestedPrice } from "@/lib/pricing";
 
 export function ProductDetail({ product, related = [] }: { product: Product; related?: readonly Product[] }) {
   const { addItem, cartError } = useCart();
@@ -40,8 +41,16 @@ export function ProductDetail({ product, related = [] }: { product: Product; rel
   const expiry = product.expiryDate
     ? new Date(product.expiryDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     : null;
+  const pricing = computeSuggestedPrice({
+    original_price: product.originalPrice,
+    expiry_date: product.expiry_date ?? product.expiryDate ?? null,
+    demand_level: product.demand_level ?? "medium",
+    stock: product.remainingStock,
+    price_floor: product.price_floor ?? 0,
+  });
+  const expired = pricing.blocked;
   const availability = product.status === "sold-out" || maxQuantity <= 0
-    ? "Sold out"
+    ? expired ? "Expired — unavailable" : "Sold out"
     : maxQuantity <= 5
       ? `Limited stock · ${maxQuantity} available`
       : "Available";
@@ -104,8 +113,18 @@ export function ProductDetail({ product, related = [] }: { product: Product; rel
           </div>
 
           <div className="savings-explanation"><span>Why this price?</span><p>You save {productRepository.formatPrice(savings)} at this deal price. This helps quality surplus inventory stay in use.</p></div>
+          <details className="pricing-explanation">
+            <summary>Why this price?</summary>
+            {pricing.blocked ? (
+              <p>{pricing.blockedReason}</p>
+            ) : (
+              <ul>
+                {pricing.reasons.map((reason) => <li key={reason}>{reason}</li>)}
+              </ul>
+            )}
+          </details>
 
-          {product.status !== "sold-out" && maxQuantity > 0 ? (
+          {!expired && product.status !== "sold-out" && maxQuantity > 0 ? (
             <div className="purchase-row">
               <div className="quantity-control" aria-label="Quantity selector">
                 <button type="button" onClick={() => updateQuantity(quantity - 1)} disabled={quantity <= 1} aria-label="Decrease quantity">−</button>
@@ -117,7 +136,7 @@ export function ProductDetail({ product, related = [] }: { product: Product; rel
             </div>
           ) : (
             <div className="sold-out-actions">
-              <button className="button button-secondary" type="button" disabled>Sold out</button>
+              <button className="button button-secondary" type="button" disabled>{expired ? "Expired — unavailable" : "Sold out"}</button>
               <button className={saved ? "detail-wishlist active" : "detail-wishlist"} type="button" onClick={toggleWishlist} aria-label={saved ? "Remove from wishlist" : "Add to wishlist"} aria-pressed={saved}><Icon name="heart" size={19} /></button>
             </div>
           )}
