@@ -215,6 +215,7 @@ export function SellerWorkspace({
                 ) : (
                   <>
                     <strong>Suggested price: {formatCurrency(suggestedPricing.suggestedPrice)}</strong>
+                    <small className="pricing-estimate-label">Estimate — not a guarantee</small>
                     <span>{suggestedPricing.discountPercent}% discount</span>
                     {suggestedPricing.reasons.map((reason) => <span key={reason}>{reason}</span>)}
                     <button

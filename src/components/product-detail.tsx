@@ -118,9 +118,12 @@ export function ProductDetail({ product, related = [] }: { product: Product; rel
             {pricing.blocked ? (
               <p>{pricing.blockedReason}</p>
             ) : (
-              <ul>
-                {pricing.reasons.map((reason) => <li key={reason}>{reason}</li>)}
-              </ul>
+              <>
+                <small className="pricing-estimate-label">Estimate — not a guarantee</small>
+                <ul>
+                  {pricing.reasons.map((reason) => <li key={reason}>{reason}</li>)}
+                </ul>
+              </>
             )}
           </details>
 
