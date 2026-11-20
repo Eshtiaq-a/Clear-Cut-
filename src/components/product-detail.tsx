@@ -13,8 +13,8 @@ import { ProductBreadcrumbs } from "./product-breadcrumbs";
 import { ProductSpecifications } from "./product-specifications";
 import { RecentlyViewed } from "./recently-viewed";
 
-export function ProductDetail({ product }: { product: Product }) {
-  const { addItem } = useCart();
+export function ProductDetail({ product, related = [] }: { product: Product; related?: readonly Product[] }) {
+  const { addItem, cartError } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [saved, setSaved] = useState(() => getWishlist().includes(product.id));
   const [added, setAdded] = useState(false);
@@ -40,10 +40,6 @@ export function ProductDetail({ product }: { product: Product }) {
   const expiry = product.expiryDate
     ? new Date(product.expiryDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
     : null;
-  const related = productRepository
-    .getProducts({ category: product.category, sortBy: "discount" })
-    .filter((item) => item.id !== product.id)
-    .slice(0, 4);
   const availability = product.status === "sold-out" || maxQuantity <= 0
     ? "Sold out"
     : maxQuantity <= 5
@@ -62,7 +58,7 @@ export function ProductDetail({ product }: { product: Product }) {
   function handleAddToCart() {
     if (product.status === "sold-out" || maxQuantity < 1 || isAdding) return;
     setIsAdding(true);
-    addItem(product.id, quantity);
+    addItem(product, quantity);
     setAdded(true);
     window.setTimeout(() => setIsAdding(false), 350);
   }
@@ -127,6 +123,7 @@ export function ProductDetail({ product }: { product: Product }) {
           )}
 
           {added && <p className="cart-confirmation" role="status">Your item is in the cart. <Link href="/cart">View cart →</Link></p>}
+          {cartError && <p className="auth-error" role="alert">{cartError}</p>}
           <Card className="delivery-card"><div><Icon name="bag" size={18} /></div><div><strong>Delivery availability</strong><span>Delivery details are shown at checkout</span></div></Card>
         </div>
       </section>

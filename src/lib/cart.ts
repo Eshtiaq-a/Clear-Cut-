@@ -1,12 +1,11 @@
 import type { CartItem } from "./demo-commerce";
-import { productRepository } from "./products";
 
 export const FREE_DELIVERY_THRESHOLD = 5000;
 export const ESTIMATED_DELIVERY_FEE = 80;
 
 export function calculateCartTotals(items: readonly CartItem[]) {
   const lines = items.flatMap((item) => {
-    const product = productRepository.getProductById(item.id);
+    const product = item.product;
     if (!product) return [];
     return [{ product, quantity: Math.max(1, Math.floor(item.quantity)) }];
   });

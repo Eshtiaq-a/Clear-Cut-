@@ -16,7 +16,7 @@ export function ProductCard({ product, onWishlistChange }: { product: Product; o
   const [imageFailed, setImageFailed] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [added, setAdded] = useState(false);
-  const { addItem } = useCart();
+  const { addItem, cartError } = useCart();
   const discountPercentage = productRepository.calculateDiscountPercentage(product);
   const [saved, setSaved] = useState(() => getWishlist().includes(product.id));
   useEffect(() => {
@@ -41,7 +41,7 @@ export function ProductCard({ product, onWishlistChange }: { product: Product; o
   function handleAddToCart() {
     if (isAdding || product.status === "sold-out" || product.remainingStock <= 0) return;
     setIsAdding(true);
-    if (addItem(product.id, 1)) {
+    if (addItem(product, 1)) {
       setAdded(true);
       window.setTimeout(() => setAdded(false), 1800);
     }
@@ -84,6 +84,7 @@ export function ProductCard({ product, onWishlistChange }: { product: Product; o
           <Icon name="bag" size={16} />
           {added ? "Added" : product.status === "sold-out" ? "Sold out" : "Add to cart"}
         </button>
+        {cartError && <p className="auth-error" role="alert">{cartError}</p>}
       </div>
     </Card>
   );

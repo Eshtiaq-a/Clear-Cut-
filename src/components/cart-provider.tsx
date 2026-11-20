@@ -2,13 +2,14 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { getCart, setCart, type CartItem } from "@/lib/demo-commerce";
-import { productRepository } from "@/lib/products";
+import type { Product } from "@/data/products";
 
 type CartContextValue = {
   items: CartItem[];
   uniqueCount: number;
   itemCount: number;
-  addItem: (id: string, quantity?: number) => boolean;
+  addItem: (product: Product, quantity?: number) => boolean;
+  cartError: string;
   updateQuantity: (id: string, quantity: number) => void;
   removeItem: (id: string) => void;
   clearCart: () => void;
@@ -18,6 +19,7 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [cartError, setCartError] = useState("");
 
   useEffect(() => {
     const syncCart = () => setItems(getCart());
@@ -36,26 +38,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart(next);
   }
 
-  function addItem(id: string, quantity = 1) {
-    const product = productRepository.getProductById(id);
-    if (!product || product.status === "sold-out" || product.remainingStock <= 0) return false;
-    const safeQuantity = Math.max(1, Math.min(product.remainingStock, Math.floor(quantity)));
-    const latest = getCart();
-    const existing = latest.find((item) => item.id === id);
-    const nextQuantity = existing
-      ? Math.min(product.remainingStock, existing.quantity + safeQuantity)
-      : safeQuantity;
-    commit(existing
-      ? latest.map((item) => item.id === id ? { ...item, quantity: nextQuantity } : item)
-      : [...latest, { id, quantity: nextQuantity }]);
-    return true;
+  function addItem(product: Product, quantity = 1) {
+    setCartError("");
+    try {
+      if (!product.id || product.status === "sold-out" || product.remainingStock <= 0) {
+        throw new Error("This product is unavailable.");
+      }
+      const safeQuantity = Math.max(1, Math.min(product.remainingStock, Math.floor(quantity)));
+      const latest = getCart();
+      const existing = latest.find((item) => item.id === product.id);
+      const nextQuantity = existing
+        ? Math.min(product.remainingStock, existing.quantity + safeQuantity)
+        : safeQuantity;
+      commit(existing
+        ? latest.map((item) => item.id === product.id ? { ...item, quantity: nextQuantity, product } : item)
+        : [...latest, { id: product.id, quantity: safeQuantity, product }]);
+      return true;
+    } catch (error) {
+      console.error("Add to cart error:", error);
+      setCartError(error instanceof Error ? error.message : "Unable to add this product to the cart.");
+      return false;
+    }
   }
 
   function updateQuantity(id: string, quantity: number) {
-    const product = productRepository.getProductById(id);
-    if (!product) return;
-    const safeQuantity = Math.max(1, Math.min(product.remainingStock, Math.floor(quantity)));
-    commit(getCart().map((item) => item.id === id ? { ...item, quantity: safeQuantity } : item));
+    try {
+      const current = getCart().find((item) => item.id === id);
+      if (!current?.product) throw new Error("This product is no longer available.");
+      const safeQuantity = Math.max(1, Math.min(current.product.remainingStock, Math.floor(quantity)));
+      commit(getCart().map((item) => item.id === id ? { ...item, quantity: safeQuantity } : item));
+    } catch (error) {
+      console.error("Update cart quantity error:", error);
+      setCartError(error instanceof Error ? error.message : "Unable to update the cart.");
+    }
   }
 
   function removeItem(id: string) {
@@ -71,6 +86,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     uniqueCount: items.length,
     itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
     addItem,
+    cartError,
     updateQuantity,
     removeItem,
     clearCart,
