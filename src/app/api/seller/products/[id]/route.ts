@@ -68,6 +68,31 @@ export async function PATCH(
       return NextResponse.json({ error: "No price or stock changes supplied" }, { status: 400 });
     }
 
+    const { data: existingProduct, error: existingProductError } = await supabase
+      .from("products")
+      .select("original_price, discounted_price")
+      .eq("id", id)
+      .eq("seller_id", user.id)
+      .maybeSingle();
+    if (existingProductError) {
+      console.error("Seller product price lookup error:", existingProductError);
+      return NextResponse.json({ error: "Unable to update product" }, { status: 500 });
+    }
+    if (!existingProduct) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    const nextOriginalPrice = update.original_price ?? Number(existingProduct.original_price);
+    const nextDiscountedPrice = update.discounted_price ?? Number(existingProduct.discounted_price);
+    if (
+      nextDiscountedPrice < 0
+      || nextDiscountedPrice > nextOriginalPrice
+    ) {
+      return NextResponse.json({
+        error: "Discounted price must be between 0 and the original price",
+      }, { status: 400 });
+    }
+
     const { data, error } = await supabase
       .from("products")
       .update(update)

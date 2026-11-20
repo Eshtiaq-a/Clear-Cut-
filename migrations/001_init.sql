@@ -20,14 +20,25 @@ create table public.products (
   expiry_date date,
   demand_level text,
   price_floor numeric,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint products_original_price_positive check (original_price > 0),
+  constraint products_discounted_price_valid check (
+    discounted_price >= 0
+    and discounted_price <= original_price
+  ),
+  constraint products_stock_nonnegative check (stock >= 0),
+  constraint products_price_floor_nonnegative check (price_floor is null or price_floor >= 0),
+  constraint products_demand_level_valid check (
+    demand_level is null or demand_level in ('low', 'medium', 'high')
+  )
 );
 
 create table public.cart_items (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.profiles(id),
   product_id uuid references public.products(id),
-  quantity int not null default 1
+  quantity int not null default 1,
+  constraint cart_items_quantity_positive check (quantity > 0)
 );
 
 create table public.orders (
@@ -35,7 +46,8 @@ create table public.orders (
   user_id uuid references public.profiles(id),
   total numeric,
   status text not null default 'pending',
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint orders_total_nonnegative check (total >= 0)
 );
 
 create table public.order_items (
@@ -43,7 +55,9 @@ create table public.order_items (
   order_id uuid references public.orders(id),
   product_id uuid references public.products(id),
   quantity int,
-  price numeric
+  price numeric,
+  constraint order_items_quantity_positive check (quantity > 0),
+  constraint order_items_price_nonnegative check (price >= 0)
 );
 
 alter table public.profiles enable row level security;
@@ -114,24 +128,15 @@ to authenticated
 using (user_id = auth.uid())
 with check (user_id = auth.uid());
 
-create policy orders_owner_all
-on public.orders for all
+create policy orders_owner_select
+on public.orders for select
 to authenticated
-using (user_id = auth.uid())
-with check (user_id = auth.uid());
+using (user_id = auth.uid());
 
-create policy order_items_owner_all
-on public.order_items for all
+create policy order_items_owner_select
+on public.order_items for select
 to authenticated
 using (
-  exists (
-    select 1
-    from public.orders
-    where orders.id = order_id
-      and orders.user_id = auth.uid()
-  )
-)
-with check (
   exists (
     select 1
     from public.orders
@@ -145,5 +150,5 @@ grant select on public.profiles to authenticated;
 grant insert on public.profiles to authenticated;
 grant insert, update on public.products to authenticated;
 grant select, insert, update, delete on public.cart_items to authenticated;
-grant select, insert, update, delete on public.orders to authenticated;
-grant select, insert, update, delete on public.order_items to authenticated;
+grant select on public.orders to authenticated;
+grant select on public.order_items to authenticated;

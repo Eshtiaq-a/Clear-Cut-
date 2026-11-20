@@ -104,3 +104,118 @@ alter table public.products
   add column if not exists expiry_date date,
   add column if not exists demand_level text,
   add column if not exists price_floor numeric;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'products_original_price_positive'
+      and conrelid = 'public.products'::regclass
+  ) then
+    alter table public.products
+      add constraint products_original_price_positive check (original_price > 0);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'products_discounted_price_valid'
+      and conrelid = 'public.products'::regclass
+  ) then
+    alter table public.products
+      add constraint products_discounted_price_valid check (
+        discounted_price >= 0
+        and discounted_price <= original_price
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'products_stock_nonnegative'
+      and conrelid = 'public.products'::regclass
+  ) then
+    alter table public.products
+      add constraint products_stock_nonnegative check (stock >= 0);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'products_price_floor_nonnegative'
+      and conrelid = 'public.products'::regclass
+  ) then
+    alter table public.products
+      add constraint products_price_floor_nonnegative
+        check (price_floor is null or price_floor >= 0);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'products_demand_level_valid'
+      and conrelid = 'public.products'::regclass
+  ) then
+    alter table public.products
+      add constraint products_demand_level_valid check (
+        demand_level is null or demand_level in ('low', 'medium', 'high')
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'cart_items_quantity_positive'
+      and conrelid = 'public.cart_items'::regclass
+  ) then
+    alter table public.cart_items
+      add constraint cart_items_quantity_positive check (quantity > 0);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'orders_total_nonnegative'
+      and conrelid = 'public.orders'::regclass
+  ) then
+    alter table public.orders
+      add constraint orders_total_nonnegative check (total >= 0);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'order_items_quantity_positive'
+      and conrelid = 'public.order_items'::regclass
+  ) then
+    alter table public.order_items
+      add constraint order_items_quantity_positive check (quantity > 0);
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'order_items_price_nonnegative'
+      and conrelid = 'public.order_items'::regclass
+  ) then
+    alter table public.order_items
+      add constraint order_items_price_nonnegative check (price >= 0);
+  end if;
+end
+$$;
+
+drop policy if exists orders_owner_all on public.orders;
+create policy orders_owner_select
+on public.orders for select
+to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists order_items_owner_all on public.order_items;
+create policy order_items_owner_select
+on public.order_items for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.orders o
+    where o.id = order_id
+      and o.user_id = auth.uid()
+  )
+);
+
+revoke insert, update, delete on public.orders from authenticated;
+revoke insert, update, delete on public.order_items from authenticated;
+grant select on public.orders to authenticated;
+grant select on public.order_items to authenticated;
