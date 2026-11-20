@@ -154,7 +154,7 @@ export function ProductDetail({ product, related = [] }: { product: Product; rel
 
       {related.length > 0 && (
         <section className="container related-products">
-          <SectionHeading eyebrow="You may also like" title="Related fresh finds" action="View all" href="/search" />
+          <SectionHeading eyebrow="You might also like" title="Similar products" action="View all" href="/search" />
           <div className="product-grid">{related.map((item) => <ProductCard key={item.id} product={item} />)}</div>
         </section>
       )}

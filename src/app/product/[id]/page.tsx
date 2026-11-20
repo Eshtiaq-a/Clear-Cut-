@@ -31,13 +31,11 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
         setProduct(data);
 
         try {
-          const categoryResponse = await fetch(
-            `/api/products?category=${encodeURIComponent(data.category)}`,
-          );
-          if (categoryResponse.ok) {
-            const categoryProducts = await categoryResponse.json() as Product[];
+          const similarResponse = await fetch(`/api/products/${id}/similar`);
+          if (similarResponse.ok) {
+            const similarProducts = await similarResponse.json() as Product[];
             if (active) {
-              setRelated(categoryProducts.filter((item) => item.id !== data.id).slice(0, 4));
+              setRelated(similarProducts);
             }
           }
         } catch (caughtError) {

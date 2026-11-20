@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { generateEmbedding, productEmbeddingText } from "@/lib/embeddings";
 
 export async function GET() {
   try {
@@ -104,6 +105,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Enter valid prices and a non-negative whole-number stock" }, { status: 400 });
     }
 
+    const embedding = await generateEmbedding(
+      productEmbeddingText(name.trim(), description.trim()),
+    );
+
     const { data, error } = await supabase
       .from("products")
       .insert({
@@ -118,6 +123,7 @@ export async function POST(request: NextRequest) {
         expiry_date: expiry_date || null,
         demand_level: demandLevel,
         price_floor: priceFloor,
+        embedding,
       })
       .select("id, seller_id, name, description, category, original_price, discounted_price, stock, image_url, expiry_date, demand_level, price_floor, created_at")
       .single();
